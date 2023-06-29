@@ -129,7 +129,7 @@ fn main() {
                 }
             }
             Some(Command::Remove(t_id)) => {
-                if validation::is_valid_task_num(t_id, user.tasks.len(), "Type 'remove <number of task>' to complete status of the task") {
+                if validation::is_valid_task_num(t_id, user.tasks.len(), "Type 'remove <number of task>' to remove task at given position") {
                     user_cache.push(user.clone());
                     user.tasks.remove(t_id - 1);
                 }
