@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use colored::*;
 
+// region: printing
+
 /// Print a symbol with a following whitespace to stdout without a new line and flush the buffer
 /// * `sym` - str slice to be printed
 /// # Examples
@@ -48,86 +50,50 @@ fn print_instr() {
     println!();
 }
 
-/// A `User` is used to encapsulate all data relevant to the client
-/// This is what will be saved/loaded from file
+// endregion: printing
+
+// region: validation
+
+
+/// Check to see if given task id is within bounds
 /// 
-/// * `name` - String that will determine the name of the file to create/read/write
-/// * `tasks` - Vector of `Task`s in the todo list related to the user
+/// * `t_id` - task id 
+/// * `len` - length of current todo list
+/// * `msg` - error message printed if task id is out of bounds
 /// 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-struct User {
-    name: String,
-    tasks: Vec<Task>
-}
-
-/// A `Task` is used to represent an entry in a list of todos 
-/// 
-/// * `title` - String containing the title of the task
-/// * `completed` - bool flag representing if the task is completed or not
-/// 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-struct Task {
-    title: String,
-    completed: bool,
-
-}
-
-/// Enumerates all possible `Command` options
-enum Command {
-    /// Add a task to your todos
-    Add(Task),
-    /// Update a task's title by its position in the list
-    Update(usize, String),
-    /// Remove a task by its position in the list
-    Remove(usize),
-    /// Remove ALL tasks
-    Clear,
-    /// Complete a task by its position in the list
-    /// Can uncomplete a task by invoking on a completed task
-    Complete(usize),
-    /// Undo a given amount of commands. 
-    /// Does NOT reset the cache after an undo, so you can undo your undos
-    Undo(usize),
-    // Swap(usize, usize), // TODO: 'swap 1 2' moves task 1 into position 2 and task 2 into position 1 
-    // Search(&str), // TODO: 'search banana' prints task position
-    // Move(usize, usize) // TODO: 'move 4 2' moves task 4 to position 2, bumping task 2 to 3, 3 to 4, etc
-    /// Provides a list of all commands
-    Help,
-    /// Quits the app and saves to file
-    Quit,
-}
-
-impl Command {
-    /// Determines what command is run based off of user input
-    /// 
-    /// * `s` - str slice of user input
-    /// 
-    /// # Returns Option\<Command\>
-    fn op(s: &str) -> Option<Self> {
-        // split s into ["<Command>", "<args>"]
-        let c: Vec<&str> = s.trim().splitn(2, ' ').collect();
-
-        match c.as_slice() {
-            ["add", t] => Some(Command::Add(Task { title: t.to_string(), completed: false })),
-            ["update", args] => {
-                let x: Vec<&str> = args.splitn(2, ' ').collect();
-                if x.len() == 2 {
-                    Some(Command::Update(x[0].parse::<usize>().unwrap_or(usize::MAX), x[1].to_string()))
-                } else {
-                    None
-                } 
-            }
-            ["remove", t_id] => Some(Command::Remove(t_id.parse::<usize>().unwrap_or(usize::MAX))),
-            ["clear"] => Some(Command::Clear),
-            ["complete", t_id] => Some(Command::Complete(t_id.parse::<usize>().unwrap_or(usize::MAX))),
-            ["undo", steps] => Some(Command::Undo(steps.parse::<usize>().unwrap_or(usize::MAX))),
-            ["help"] | ["help" , ..] => Some(Command::Help),
-            ["quit"] | ["quit", ..] => Some(Command::Quit),
-            _ => None
+fn is_valid_task_num(t_id: usize, len: usize, msg: &str) -> bool {
+    match t_id {
+        _i if len == 0 => println!("{}", "Task list empty. Add a task before trying to change anything!".bright_red()),
+        i if i <= 0 || i > len => {
+            println!("{} {}", "Invalid argument:".bright_red(), i);
+            println!("{}", msg.bright_red());
         }
-
+        _ => return true 
     }
+    false
 }
+
+/// Check to see if undo can step back a given amount of commands
+/// 
+/// * `steps` - amount of steps to undo
+/// * `len` - length of commands made during session
+/// * `msg` - error message printed if `steps` is invalid
+/// 
+fn is_valid_undo(steps: usize, len: usize, msg: &str) -> bool {
+    match steps {
+        _i if len == 0 => println!("{}", "Nothing to undo. Must use a command before undoing".bright_red()),
+        i if i <= 0 || i > len => {
+            println!("{} {}", "Invalid argument:".bright_red(), i);
+            println!("{}", msg.bright_red());
+        }
+        _ => return true 
+    }
+    false
+}
+
+// endregion: validation
+
+// region: storage
 
 /// Write what is stored in `User` obj to file.
 /// Overwrites old file data
@@ -171,42 +137,96 @@ fn populate_user(name: &str) -> Result<User>{
     user
 }
 
-/// Check to see if given task id is within bounds
+// endregion: storage
+
+// region: data-structures
+
+/// A `User` is used to encapsulate all data relevant to the client
+/// This is what will be saved/loaded from file
 /// 
-/// * `t_id` - task id 
-/// * `len` - length of current todo list
-/// * `msg` - error message printed if task id is out of bounds
+/// * `name` - String that will determine the name of the file to create/read/write
+/// * `tasks` - Vector of `Task`s in the todo list related to the user
 /// 
-fn is_valid_task_num(t_id: usize, len: usize, msg: &str) -> bool {
-    match t_id {
-        _i if len == 0 => println!("{}", "Task list empty. Add a task before trying to change anything!".bright_red()),
-        i if i <= 0 || i > len => {
-            println!("{} {}", "Invalid argument:".bright_red(), i);
-            println!("{}", msg.bright_red());
-        }
-        _ => return true 
-    }
-    false
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct User {
+    name: String,
+    tasks: Vec<Task>
 }
 
-/// Check to see if undo can step back a given amount of commands
+/// A `Task` is used to represent an entry in a list of todos 
 /// 
-/// * `steps` - amount of steps to undo
-/// * `len` - length of commands made during session
-/// * `msg` - error message printed if `steps` is invalid
+/// * `title` - String containing the title of the task
+/// * `completed` - bool flag representing if the task is completed or not
 /// 
-fn is_valid_undo(steps: usize, len: usize, msg: &str) -> bool {
-    match steps {
-        _i if len == 0 => println!("{}", "Nothing to undo. Must use a command before undoing".bright_red()),
-        i if i <= 0 || i > len => {
-            println!("{} {}", "Invalid argument:".bright_red(), i);
-            println!("{}", msg.bright_red());
-        }
-        _ => return true 
-    }
-    false
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct Task {
+    title: String,
+    completed: bool,
+
 }
 
+/// Enumerates all possible `Command` options
+enum Command {
+    /// Add a task to your todos
+    Add(Task),
+    /// Update a task's title by its position in the list
+    Update(usize, String),
+    /// Remove a task by its position in the list
+    Remove(usize),
+    /// Remove ALL tasks
+    Clear,
+    /// Complete a task by its position in the list
+    /// Can uncomplete a task by invoking on a completed task
+    Complete(usize),
+    /// Undo a given amount of commands. 
+    /// Does NOT reset the cache after an undo, so you can undo your undos
+    Undo(usize),
+    // Swap(usize, usize), // TODO: 'swap 1 2' moves task 1 into position 2 and task 2 into position 1 
+    // Search(&str), // TODO: 'search banana' prints task position
+    // Move(usize, usize) // TODO: 'move 4 2' moves task 4 to position 2, bumping task 2 to 3, 3 to 4, etc
+    /// Provides a list of all commands with an example use case
+    Help,
+    /// Quits the app and saves to file
+    Quit,
+}
+
+// endregion: data-structures
+
+// region: impl
+
+impl Command {
+    /// Determines what command is run based off of user input
+    /// 
+    /// * `s` - str slice of user input
+    /// 
+    /// # Returns Option\<Command\>
+    fn op(s: &str) -> Option<Self> {
+        // split s into ["<Command>", "<args>"]
+        let c: Vec<&str> = s.trim().splitn(2, ' ').collect();
+
+        match c.as_slice() {
+            ["add", t] => Some(Command::Add(Task { title: t.to_string(), completed: false })),
+            ["update", args] => {
+                let x: Vec<&str> = args.splitn(2, ' ').collect();
+                if x.len() == 2 {
+                    Some(Command::Update(x[0].parse::<usize>().unwrap_or(usize::MAX), x[1].to_string()))
+                } else {
+                    None
+                } 
+            }
+            ["remove", t_id] => Some(Command::Remove(t_id.parse::<usize>().unwrap_or(usize::MAX))),
+            ["clear"] => Some(Command::Clear),
+            ["complete", t_id] => Some(Command::Complete(t_id.parse::<usize>().unwrap_or(usize::MAX))),
+            ["undo", steps] => Some(Command::Undo(steps.parse::<usize>().unwrap_or(usize::MAX))),
+            ["help"] | ["help" , ..] => Some(Command::Help),
+            ["quit"] | ["quit", ..] => Some(Command::Quit),
+            _ => None
+        }
+
+    }
+}
+
+// endregion: impl
 
 fn main() {
     // * get username
