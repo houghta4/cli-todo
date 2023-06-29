@@ -91,8 +91,10 @@ impl Command {
 // endregion: data-structures
 
 fn main() {
+    printing::clear_screen();
+    printing::print_title();
     // * get username
-    println!("Enter username: ");
+    println!("{}", "Enter username: ".green());
     printing::print_prompt_symbol(">");
     let username = std::io::stdin().lock().lines().next().expect("Error reading username").unwrap_or("Default".to_string());
 
@@ -100,13 +102,15 @@ fn main() {
     let mut user_cache: Vec<User> = vec![]; // every action will push a user into this
     let mut user: User = storage::populate_user(&username).expect("Error reading User from file");
 
+    println!();
     printing::print_tasks(&user.tasks);
-    println!("{}", "Type 'help' to see instructions available".bright_yellow());
+    println!("{}", "Type 'help' to see instructions available\n".bright_yellow());
     printing::print_prompt_symbol(">");
 
 
     // * main loop
     for line in std::io::stdin().lock().lines() {
+        println!();
         let input: String = line.expect("Error reading input");
 
         // * Do what is needed based off of user supplied input
