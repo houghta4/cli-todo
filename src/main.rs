@@ -96,10 +96,10 @@ fn main() {
     // * get username
     println!("{}", "Enter username: ".green());
     printing::print_prompt_symbol(">");
-    let username = std::io::stdin().lock().lines().next().expect("Error reading username").unwrap_or("Default".to_string());
+    let username = std::io::stdin().lock().lines().next().expect("Error reading username").unwrap_or("default".to_string());
 
     // * initialize cache and user
-    let mut user_cache: Vec<User> = vec![]; // every action will push a user into this
+    let mut task_cache: Vec<Vec<Task>> = vec![]; // every actionable command will push a task into this
     let mut user: User = storage::populate_user(&username).expect("Error reading User from file");
 
     println!();
@@ -116,39 +116,39 @@ fn main() {
         // * Do what is needed based off of user supplied input
         match Command::op(&input) {
             Some(Command::Add(task)) => {
-                user_cache.push(user.clone());
+                task_cache.push(user.tasks.clone());
                 user.tasks.push(task);
             }
             Some(Command::Update(t_id, title)) => {
                 if validation::is_valid_task_num(t_id, user.tasks.len(), "Type 'update <number of task> <new title>' to update the name of the task") {
-                    user_cache.push(user.clone());
+                    task_cache.push(user.tasks.clone());
                     user.tasks[t_id - 1].title = title;
                 }
             }
             Some(Command::Complete(t_id)) => {
                 if validation::is_valid_task_num(t_id, user.tasks.len(), "Type 'complete <number of task>' to complete status of the task") {
-                    user_cache.push(user.clone());
+                    task_cache.push(user.tasks.clone());
                     let mut c = &mut user.tasks[t_id - 1];
                     c.completed = !c.completed
                 }
             }
             Some(Command::Remove(t_id)) => {
                 if validation::is_valid_task_num(t_id, user.tasks.len(), "Type 'remove <number of task>' to remove task at given position") {
-                    user_cache.push(user.clone());
+                    task_cache.push(user.tasks.clone());
                     user.tasks.remove(t_id - 1);
                 }
             }
             Some(Command::Undo(steps)) => {
-                if validation::is_valid_undo(steps, user_cache.len(), "Type 'undo <number of commands>' to undo a given amount of commands.\nMust be < total commands in current session") {
-                    user_cache.push(user.clone());
+                if validation::is_valid_undo(steps, task_cache.len(), "Type 'undo <number of commands>' to undo a given amount of commands.\nMust be < total commands in current session") {
+                    task_cache.push(user.tasks.clone());
                     // set user to correct index of user_cache
-                    let cache_size = user_cache.len();
-                    user = user_cache[cache_size - steps - 1].clone();
+                    let cache_size = task_cache.len();
+                    user.tasks = task_cache[cache_size - steps - 1].clone();
                 }
                 
             }
             Some(Command::Clear) => {
-                user_cache.push(user.clone());
+                task_cache.push(user.tasks.clone());
                 user.tasks.clear()
             }
             Some(Command::Help) => printing::print_instr(),
@@ -161,5 +161,5 @@ fn main() {
     }
 
     storage::write_to_file(&user);
-    println!("Bye!\nThanks for using cli-todo!");
+    println!("Bye!\nThanks for using cli-todo!\n");
 }   
