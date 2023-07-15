@@ -16,7 +16,7 @@ pub fn print_prompt_symbol(sym: &str) {
 /// Print and format tasks to terminal
 ///
 ///* `tasks` - ref to vector containing tasks to display
-pub fn print_tasks(tasks: &Vec<Task>) {
+pub fn print_tasks(tasks: &[Task]) {
     // * this is a mess but it works
     let longest_task = tasks.iter().map(|x| x.title.len()).max().unwrap_or(0) + 7 + 8; //len(title + (position + completed) + whitespace)
     let title = "    cli-todo    ";

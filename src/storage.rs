@@ -14,7 +14,7 @@ pub fn write_to_file(user: &User) {
         tasks: vec![Task{ title: "Walk dog".to_string(), completed: false}, Task{ title: "Make dinner".to_string(), completed: true}],
     }; //test value
     let f_name = format!("{}{}", user.name, "_tasks.json");
-    let file = OpenOptions::new().create(false).write(true).truncate(true).open(&f_name).expect("Error opening file");
+    let file = OpenOptions::new().create(false).write(true).truncate(true).open(f_name).expect("Error opening file");
     serde_json::to_writer_pretty(&file, &user).expect("Error writing to file");
 }
 
@@ -41,6 +41,6 @@ pub fn populate_user(name: &str) -> Result<User>{
     let mut content = String::new();
     file.read_to_string(&mut content).expect("Could not deserialize file");
 
-    let user: Result<User> = serde_json::from_str(&content.as_str());
+    let user: Result<User> = serde_json::from_str(content.as_str());
     user
 }
